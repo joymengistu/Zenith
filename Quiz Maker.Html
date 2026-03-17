@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenith | Assessment Platform</title>
+    <!-- Tailwind CSS v3 CDN (v4 is not yet stable for CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #F9FAFB; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom UI Elements */
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .card { background: white; border: 1px solid #E5E7EB; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s ease; }
+        .card:hover { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); border-color: #D1D5DB; }
+        
+        .btn-primary { background: #000; color: #fff; border-radius: 12px; padding: 10px 20px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary:hover { background: #333; transform: translateY(-1px); }
+        .btn-primary:active { transform: translateY(0); }
+        
+        .btn-secondary { background: #fff; color: #374151; border: 1px solid #E5E7EB; border-radius: 12px; padding: 10px 20px; font-weight: 500; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-secondary:hover { background: #F9FAFB; border-color: #D1D5DB; }
+
+        .input-base { width: 100%; padding: 12px 16px; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; font-size: 14px; transition: all 0.2s; outline: none; }
+        .input-base:focus { border-color: #000; ring: 2px solid rgba(0,0,0,0.05); }
+
+        .tab-active { color: #000; background: #F3F4F6; }
+        
+        /* Animations */
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+        .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #D1D5DB; }
+    </style>
+<script src="/_aistudio-iframe.js"></script></head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="h-16 border-b border-gray-200 bg-white flex items-center justify-between px-4 md:px-8 z-50">
+        <div class="flex items-center gap-2 md:gap-3">
+            <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold italic shrink-0">Z</div>
+            <span class="font-bold text-lg md:text-xl tracking-tight hidden sm:block">Zenith</span>
+            <div class="h-4 w-[1px] bg-gray-200 mx-1 md:mx-2 hidden sm:block"></div>
+            <span id="header-title" class="text-[10px] md:text-xs font-medium text-gray-400 uppercase tracking-widest truncate max-w-[100px] md:max-w-none">General Knowledge Quiz</span>
+        </div>
+
+        <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl scale-90 md:scale-100">
+            <button onclick="setTab('editor')" id="tab-editor" class="px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all tab-active flex items-center gap-2">
+                <i data-lucide="layout" class="w-3.5 h-3.5"></i> <span class="hidden xs:block">Editor</span>
+            </button>
+            <button onclick="setTab('settings')" id="tab-settings" class="px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all text-gray-500 hover:text-gray-900 flex items-center gap-2">
+                <i data-lucide="settings" class="w-3.5 h-3.5"></i> <span class="hidden xs:block">Settings</span>
+            </button>
+            <button onclick="setTab('preview')" id="tab-preview" class="px-3 md:px-4 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all text-gray-500 hover:text-gray-900 flex items-center gap-2">
+                <i data-lucide="eye" class="w-3.5 h-3.5"></i> <span class="hidden xs:block">Simulator</span>
+            </button>
+        </div>
+
+        <div class="flex items-center gap-2 md:gap-3">
+            <button onclick="downloadApp()" class="btn-secondary scale-90 md:scale-100">
+                <i data-lucide="save" class="w-4 h-4"></i> <span class="hidden sm:block">Save App</span>
+            </button>
+            <button onclick="exportQuiz()" class="btn-primary scale-90 md:scale-100">
+                <i data-lucide="download" class="w-4 h-4"></i> <span class="hidden sm:block">Deploy</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Sidebar (Questions List) -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-72 border-r border-gray-200 bg-white flex flex-col overflow-hidden transition-transform duration-300 -translate-x-full md:relative md:translate-x-0">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="text-xs font-bold uppercase tracking-widest text-gray-400">Questions</h3>
+                <span id="q-count-badge" class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full">1</span>
+            </div>
+            <div id="sidebar-q-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- Sidebar items injected here -->
+            </div>
+            <div class="p-4 border-t border-gray-100">
+                <button onclick="addQuestion()" class="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:border-black hover:text-black transition-all flex items-center justify-center gap-2 text-sm font-medium">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Add Question
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-[#F9FAFB] p-4 md:p-12">
+            <div id="main-content" class="max-w-3xl mx-auto">
+                <!-- Active Tab Content injected here -->
+            </div>
+        </main>
+
+        <!-- Sidebar Overlay -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 hidden md:hidden"></div>
+    </div>
+
+    <script>
+        // --- State ---
+        let state = {
+    "questions": [
+        {
+            "id": "1773775941751",
+            "type": "multiple-choice",
+            "text": "What is the capital of France?",
+            "options": [
+                "London",
+                "Berlin",
+                "Paris",
+                "Madrid"
+            ],
+            "correct": 2,
+            "explanation": "Paris has been the capital of France since the late 10th century."
+        }
+    ],
+    "settings": {
+        "title": "General Knowledge Quiz",
+        "timeLimit": 60,
+        "timeLimitPerQuestion": 0,
+        "maxLives": 3,
+        "shuffleQuestions": false,
+        "showExplanation": true,
+        "welcomeMessage": "Please complete all questions to finish.",
+        "completionMessage": "You have successfully completed all questions."
+    },
+    "currentTab": "editor",
+    "activeQuestionId": "1773775941751",
+    "previewMode": "desktop",
+    "sidebarOpen": true
+};
+
+        state.activeQuestionId = state.questions[0].id;
+
+        // --- Actions ---
+        function toggleSidebar() {
+            state.sidebarOpen = !state.sidebarOpen;
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (state.sidebarOpen) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function setPreviewMode(mode) {
+            state.previewMode = mode;
+            render();
+        }
+
+        function setTab(tab) {
+            state.currentTab = tab;
+            if (window.innerWidth < 768) state.sidebarOpen = false; // Close sidebar on mobile when switching tabs
+            updateTabsUI();
+            render();
+        }
+
+        function addQuestion() {
+            const newQ = {
+                id: Date.now().toString(),
+                type: 'multiple-choice',
+                text: '',
+                options: ['', '', '', ''],
+                correct: 0,
+                explanation: ''
+            };
+            state.questions.push(newQ);
+            state.activeQuestionId = newQ.id;
+            render();
+        }
+
+        function removeQuestion(id) {
+            if (state.questions.length <= 1) return;
+            state.questions = state.questions.filter(q => q.id !== id);
+            if (state.activeQuestionId === id) {
+                state.activeQuestionId = state.questions[0].id;
+            }
+            render();
+        }
+
+        function updateQuestion(id, updates) {
+            const q = state.questions.find(q => q.id === id);
+            if (q) Object.assign(q, updates);
+            renderSidebar(); // Only sidebar needs update for text changes
+        }
+
+        function updateSetting(key, value) {
+            state.settings[key] = value;
+            if (key === 'title') document.getElementById('header-title').innerText = value;
+        }
+
+        // --- Rendering ---
+        function render() {
+            renderSidebar();
+            renderMain();
+            lucide.createIcons();
+        }
+
+        function updateTabsUI() {
+            const tabs = ['editor', 'settings', 'preview'];
+            tabs.forEach(t => {
+                const btn = document.getElementById('tab-' + t);
+                if (t === state.currentTab) {
+                    btn.classList.add('tab-active');
+                    btn.classList.remove('text-gray-500');
+                } else {
+                    btn.classList.remove('tab-active');
+                    btn.classList.add('text-gray-500');
+                }
+            });
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('sidebar-q-list');
+            document.getElementById('q-count-badge').innerText = state.questions.length;
+            
+            list.innerHTML = state.questions.map((q, i) => `
+                <button onclick="setActiveQ('${q.id}')" class="w-full text-left p-3 rounded-xl transition-all flex items-center gap-3 group ${state.activeQuestionId === q.id ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}">
+                    <span class="text-[10px] font-bold opacity-50">${i + 1}</span>
+                    <span class="text-sm font-medium truncate flex-1">${q.text || 'Untitled Question'}</span>
+                    <i data-lucide="chevron-right" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function setActiveQ(id) {
+            state.activeQuestionId = id;
+            state.currentTab = 'editor';
+            if (window.innerWidth < 768) toggleSidebar(); // Close sidebar on mobile
+            updateTabsUI();
+            render();
+        }
+
+        function renderMain() {
+            const container = document.getElementById('main-content');
+            if (state.currentTab === 'editor') {
+                const q = state.questions.find(q => q.id === state.activeQuestionId);
+                if (!q) return;
+
+                container.innerHTML = `
+                    <div class="animate-fade-in space-y-8">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-2xl font-bold tracking-tight">Question Editor</h2>
+                            <button onclick="removeQuestion('${q.id}')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all flex items-center gap-2 text-sm font-medium">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i> Delete
+                            </button>
+                        </div>
+
+                        <div class="card p-8 space-y-6">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Question Type</label>
+                                <div class="flex gap-2">
+                                    <button onclick="updateQuestion('${q.id}', {type: 'multiple-choice', options: ['', '', '', '']}); render();" class="flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${q.type === 'multiple-choice' ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}">Multiple Choice</button>
+                                    <button onclick="updateQuestion('${q.id}', {type: 'true-false', options: ['True', 'False']}); render();" class="flex-1 py-2 rounded-lg border text-sm font-medium transition-all ${q.type === 'true-false' ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}">True / False</button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Question Text</label>
+                                <textarea oninput="updateQuestion('${q.id}', {text: this.value})" class="input-base min-h-[100px] text-lg font-medium resize-none" placeholder="What would you like to ask?">${q.text}</textarea>
+                            </div>
+
+                            <div class="space-y-4">
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Options & Correct Answer</label>
+                                <div class="grid grid-cols-1 gap-3">
+                                    ${q.options.map((opt, i) => `
+                                        <div class="flex items-center gap-3 group">
+                                            <button onclick="updateQuestion('${q.id}', {correct: ${i}}); render();" class="w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${q.correct === i ? 'bg-black border-black text-white' : 'border-gray-200 text-transparent hover:border-gray-400'}">
+                                                <i data-lucide="check" class="w-4 h-4"></i>
+                                            </button>
+                                            <input oninput="const opts = [...state.questions.find(q => q.id === '${q.id}').options]; opts[${i}] = this.value; updateQuestion('${q.id}', {options: opts})" class="input-base flex-1 ${q.correct === i ? 'border-black bg-gray-50' : ''}" value="${opt}" placeholder="Option ${i + 1}">
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="pt-6 border-t border-gray-100 space-y-2">
+                                <label class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Explanation (Optional)</label>
+                                <textarea oninput="updateQuestion('${q.id}', {explanation: this.value})" class="input-base text-sm bg-gray-50 border-transparent focus:bg-white min-h-[60px] resize-none" placeholder="Explain why the correct answer is right...">${q.explanation}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (state.currentTab === 'settings') {
+                container.innerHTML = `
+                    <div class="animate-fade-in space-y-8">
+                        <h2 class="text-2xl font-bold tracking-tight">Quiz Settings</h2>
+                        
+                        <div class="card p-8 space-y-8">
+                            <div class="space-y-2">
+                                <label class="text-sm font-semibold">Assessment Title</label>
+                                <input type="text" oninput="updateSetting('title', this.value)" class="input-base text-lg font-medium" value="${state.settings.title}">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-8">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-semibold">Total Time (s)</label>
+                                    <input type="number" oninput="updateSetting('timeLimit', parseInt(this.value))" class="input-base" value="${state.settings.timeLimit}">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-semibold">Time Per Q (s)</label>
+                                    <input type="number" oninput="updateSetting('timeLimitPerQuestion', parseInt(this.value))" class="input-base" value="${state.settings.timeLimitPerQuestion}">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-8">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-semibold">Max Lives</label>
+                                    <input type="number" oninput="updateSetting('maxLives', parseInt(this.value))" class="input-base" value="${state.settings.maxLives}">
+                                </div>
+                            </div>
+
+                            <div class="space-y-4 pt-6 border-t border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="text-sm font-semibold">Shuffle Questions</h4>
+                                        <p class="text-xs text-gray-500">Randomize order for each attempt.</p>
+                                    </div>
+                                    <button onclick="updateSetting('shuffleQuestions', !state.settings.shuffleQuestions); render();" class="w-12 h-6 rounded-full transition-all relative ${state.settings.shuffleQuestions ? 'bg-black' : 'bg-gray-200'}">
+                                        <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all ${state.settings.shuffleQuestions ? 'translate-x-6' : ''}"></div>
+                                    </button>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h4 class="text-sm font-semibold">Show Explanations</h4>
+                                        <p class="text-xs text-gray-500">Show explanation after answering.</p>
+                                    </div>
+                                    <button onclick="updateSetting('showExplanation', !state.settings.showExplanation); render();" class="w-12 h-6 rounded-full transition-all relative ${state.settings.showExplanation ? 'bg-black' : 'bg-gray-200'}">
+                                        <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-all ${state.settings.showExplanation ? 'translate-x-6' : ''}"></div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4 pt-6 border-t border-gray-100">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-semibold">Welcome Message</label>
+                                    <textarea oninput="updateSetting('welcomeMessage', this.value)" class="input-base min-h-[60px] resize-none">${state.settings.welcomeMessage}</textarea>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-semibold">Completion Message</label>
+                                    <textarea oninput="updateSetting('completionMessage', this.value)" class="input-base min-h-[60px] resize-none">${state.settings.completionMessage}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (state.currentTab === 'preview') {
+                container.innerHTML = `
+                    <div class="animate-fade-in space-y-8">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <h2 class="text-2xl font-bold tracking-tight">Simulator</h2>
+                            <div class="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-200">
+                                <button onclick="setPreviewMode('desktop')" class="p-2 rounded-lg transition-all ${state.previewMode === 'desktop' ? 'bg-black text-white' : 'text-gray-400 hover:text-gray-900'}">
+                                    <i data-lucide="monitor" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="setPreviewMode('mobile')" class="p-2 rounded-lg transition-all ${state.previewMode === 'mobile' ? 'bg-black text-white' : 'text-gray-400 hover:text-gray-900'}">
+                                    <i data-lucide="smartphone" class="w-4 h-4"></i>
+                                </button>
+                                <div class="h-4 w-[1px] bg-gray-200 mx-1"></div>
+                                <button onclick="startSim()" class="p-2 text-gray-400 hover:text-gray-900">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="sim-frame-container" class="flex justify-center items-start transition-all duration-500">
+                            <div id="sim-frame" class="card overflow-hidden bg-gray-50 border-gray-300 shadow-2xl transition-all duration-500 flex items-center justify-center ${state.previewMode === 'mobile' ? 'w-[375px] h-[667px] rounded-[40px] border-[12px] border-black' : 'w-full min-h-[500px] p-12'}">
+                                <div id="sim-content" class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-100 p-8 text-center space-y-8">
+                                    <div class="w-16 h-16 bg-black rounded-2xl flex items-center justify-center text-white text-2xl font-bold mx-auto">Z</div>
+                                    <h3 class="text-2xl font-bold">${state.settings.title}</h3>
+                                    <p class="text-gray-500 text-sm">${state.settings.welcomeMessage}</p>
+                                    <button onclick="startSimActual()" class="btn-primary w-full py-4 text-lg justify-center">Start Assessment</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            lucide.createIcons();
+        }
+
+        // --- Simulator Logic ---
+        let sim = { cur: 0, lives: 0, time: 0, timer: null, questions: [], showExpl: false };
+
+        function startSim() {
+            setTab('preview');
+        }
+
+        function startSimActual() {
+            sim.questions = [...state.questions];
+            if (state.settings.shuffleQuestions) sim.questions.sort(() => Math.random() - 0.5);
+            sim.cur = 0;
+            sim.lives = state.settings.maxLives;
+            sim.time = state.settings.timeLimit;
+            sim.showExpl = false;
+            
+            if (state.settings.timeLimit > 0) {
+                sim.timer = setInterval(() => {
+                    sim.time--;
+                    if (sim.time <= 0) endSim(false);
+                    updateSimUI();
+                }, 1000);
+            }
+            updateSimUI();
+        }
+
+        function updateSimUI() {
+            const frame = document.getElementById('sim-content');
+            const q = sim.questions[sim.cur];
+            
+            if (!q) { endSim(true); return; }
+
+            frame.innerHTML = `
+                <div class="text-left space-y-6">
+                    <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                        <span class="text-red-500">â¤ï¸ Lives: ${sim.lives}</span>
+                        <span>â± Time: ${state.settings.timeLimit > 0 ? sim.time + 's' : 'âˆž'}</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div class="h-full bg-black transition-all duration-500" style="width: ${(sim.cur / sim.questions.length) * 100}%"></div>
+                    </div>
+                    <h3 class="text-xl font-bold leading-tight">${q.text}</h3>
+                    
+                    ${sim.showExpl ? `
+                        <div class="p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-fade-in space-y-4">
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Explanation</p>
+                            <p class="text-sm text-gray-600">${q.explanation || 'No explanation provided.'}</p>
+                            <button onclick="nextSim()" class="btn-primary w-full justify-center">Continue</button>
+                        </div>
+                    ` : `
+                        <div class="space-y-3">
+                            ${q.options.map((o, i) => `
+                                <button onclick="checkSim(${i})" class="w-full text-left p-4 rounded-xl border border-gray-200 hover:border-black hover:bg-gray-50 transition-all font-medium text-sm flex justify-between items-center group">
+                                    ${o} <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100"></i>
+                                </button>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function checkSim(idx) {
+            const q = sim.questions[sim.cur];
+            if (idx === q.correct) {
+                if (state.settings.showExplanation && q.explanation) {
+                    sim.showExpl = true;
+                    updateSimUI();
+                } else {
+                    nextSim();
+                }
+            } else {
+                sim.lives--;
+                document.getElementById('sim-content').classList.add('animate-shake');
+                setTimeout(() => document.getElementById('sim-content').classList.remove('animate-shake'), 500);
+                if (sim.lives <= 0) endSim(false);
+                else {
+                    if (state.settings.showExplanation && q.explanation) {
+                        sim.showExpl = true;
+                        updateSimUI();
+                    } else {
+                        updateSimUI();
+                    }
+                }
+            }
+        }
+
+        function nextSim() {
+            sim.cur++;
+            sim.showExpl = false;
+            updateSimUI();
+        }
+
+        function endSim(won) {
+            clearInterval(sim.timer);
+            const frame = document.getElementById('sim-content');
+            frame.innerHTML = `
+                <div class="space-y-6 py-8">
+                    <div class="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-4xl ${won ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}">
+                        ${won ? 'ðŸŽ‰' : 'ðŸ’€'}
+                    </div>
+                    <div class="space-y-2">
+                        <h2 class="text-2xl font-bold">${won ? 'Success!' : 'Game Over'}</h2>
+                        <p class="text-sm text-gray-500">${won ? state.settings.completionMessage : 'You ran out of lives or time.'}</p>
+                    </div>
+                    <button onclick="startSimActual()" class="btn-primary w-full justify-center">Try Again</button>
+                </div>
+            `;
+        }
+
+        // --- Export ---
+        function downloadApp() {
+            // Get the current HTML of the entire page
+            fetch(window.location.href)
+                .then(res => res.text())
+                .then(html => {
+                    // We want to replace the initial state in the script with the CURRENT state
+                    // This ensures the downloaded app opens with all your questions saved
+                    const stateRegex = /let state = \{[\s\S]*?\};/;
+                    const currentStateStr = `let state = ${JSON.stringify(state, null, 4)};`;
+                    const newHtml = html.replace(stateRegex, currentStateStr);
+                    
+                    const blob = new Blob([newHtml], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'zenith-builder.html';
+                    a.click();
+                });
+        }
+
+        function exportQuiz() {
+            const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${state.settings.title}</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>
+        body { font-family: ui-sans-serif, system-ui, sans-serif; background: #F9FAFB; }
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+    <div id="game" class="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 md:p-12 transition-all">
+        <div id="s-start" class="text-center space-y-8">
+            <div class="w-20 h-20 bg-black rounded-3xl flex items-center justify-center text-white text-3xl font-bold mx-auto">Z</div>
+            <h1 class="text-3xl font-bold">${state.settings.title}</h1>
+            <p class="text-gray-500">${state.settings.welcomeMessage}</p>
+            <button onclick="start()" class="w-full py-5 bg-black text-white rounded-2xl font-bold text-lg">Start</button>
+        </div>
+        <div id="s-quiz" class="hidden space-y-8">
+            <div class="flex justify-between text-[10px] font-bold text-gray-400">
+                <span id="lives" class="text-red-500"></span>
+                <span id="time"></span>
+            </div>
+            <h2 id="q-text" class="text-2xl font-bold"></h2>
+            <div id="q-opts" class="space-y-3"></div>
+            <div id="q-expl" class="hidden p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-4">
+                <p id="expl-text" class="text-sm text-gray-600"></p>
+                <button onclick="next()" class="w-full py-3 bg-black text-white rounded-xl font-bold">Continue</button>
+            </div>
+        </div>
+        <div id="s-end" class="hidden text-center space-y-8">
+            <div id="e-icon" class="text-6xl"></div>
+            <h2 id="e-title" class="text-3xl font-bold"></h2>
+            <p id="e-msg" class="text-gray-500"></p>
+            <button onclick="location.reload()" class="w-full py-5 bg-black text-white rounded-2xl font-bold">Restart</button>
+        </div>
+    </div>
+    <script>
+        const data = ${JSON.stringify(state)};
+        let questions = [...data.questions];
+        if(data.settings.shuffleQuestions) questions.sort(() => Math.random() - 0.5);
+        let cur = 0, lives = data.settings.maxLives, time = data.settings.timeLimit, timer;
+
+        function start() {
+            document.getElementById('s-start').classList.add('hidden');
+            document.getElementById('s-quiz').classList.remove('hidden');
+            if(time > 0) timer = setInterval(() => { time--; document.getElementById('time').innerText = 'â± ' + time + 's'; if(time <= 0) end(false); }, 1000);
+            load();
+        }
+
+        function load() {
+            const q = questions[cur];
+            document.getElementById('lives').innerText = 'â¤ï¸ ' + lives;
+            document.getElementById('q-text').innerText = q.text;
+            document.getElementById('q-expl').classList.add('hidden');
+            const oDiv = document.getElementById('q-opts');
+            oDiv.innerHTML = '';
+            oDiv.classList.remove('hidden');
+            q.options.forEach((o, i) => {
+                const b = document.createElement('button');
+                b.className = 'w-full text-left p-5 rounded-2xl border-2 border-gray-100 hover:border-black font-semibold';
+                b.innerText = o;
+                b.onclick = () => {
+                    if(i === q.correct) {
+                        if(data.settings.showExplanation && q.explanation) showExpl(q.explanation);
+                        else next();
+                    } else {
+                        lives--; document.getElementById('game').classList.add('shake');
+                        setTimeout(() => document.getElementById('game').classList.remove('shake'), 500);
+                        if(lives <= 0) end(false);
+                        else {
+                            document.getElementById('lives').innerText = 'â¤ï¸ ' + lives;
+                            if(data.settings.showExplanation && q.explanation) showExpl(q.explanation);
+                        }
+                    }
+                };
+                oDiv.appendChild(b);
+            });
+        }
+
+        function showExpl(t) {
+            document.getElementById('q-opts').classList.add('hidden');
+            document.getElementById('q-expl').classList.remove('hidden');
+            document.getElementById('expl-text').innerText = t;
+        }
+
+        function next() {
+            cur++;
+            if(cur >= questions.length) end(true);
+            else load();
+        }
+
+        function end(w) {
+            clearInterval(timer);
+            document.getElementById('s-quiz').classList.add('hidden');
+            document.getElementById('s-end').classList.remove('hidden');
+            document.getElementById('e-icon').innerText = w ? 'ðŸŽ‰' : 'ðŸ’€';
+            document.getElementById('e-title').innerText = w ? 'Success!' : 'Game Over';
+            document.getElementById('e-msg').innerText = w ? data.settings.completionMessage : 'Try again!';
+        }
+    <\/script>
+</body>
+</html>`;
+            const blob = new Blob([html], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'assessment.html';
+            a.click();
+        }
+
+        // --- Init ---
+        render();
+    </script>
+</body>
+</html>
